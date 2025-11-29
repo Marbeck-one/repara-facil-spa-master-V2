@@ -4,21 +4,51 @@ import api from "../api/api";
 
 const AuthContext = createContext(null);
 
+// Función para decodificar JWT y extraer el payload
+const decodeToken = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Error decodificando token:", error);
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [username, setUsername] = useState(null);
-  // Iniciamos loading en true para esperar a leer localStorage
+  const [role, setRole] = useState(null); // ROL del usuario
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     try {
       const storedToken = localStorage.getItem("token");
       const storedUser = localStorage.getItem("username");
+      const storedRole = localStorage.getItem("role");
       
       if (storedToken) {
         console.log("✅ AuthContext: Token encontrado, restaurando sesión.");
         setToken(storedToken);
         setUsername(storedUser);
+        setRole(storedRole);
+        
+        // Verificar si el token sigue válido (opcional)
+        const decoded = decodeToken(storedToken);
+        if (decoded && decoded.exp * 1000 < Date.now()) {
+          console.warn("⚠️ Token expirado, limpiando sesión");
+          localStorage.clear();
+          setToken(null);
+          setUsername(null);
+          setRole(null);
+        }
       } else {
         console.log("ℹ️ AuthContext: No hay token guardado.");
       }
@@ -32,7 +62,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (userOrEmail, password) => {
     try {
       console.log("Attempting login for:", userOrEmail);
-      // Ajusta la ruta si tu backend usa otra (ej: /auth/authenticate)
       const resp = await api.post("/auth/login", { 
         username: userOrEmail, 
         password: password 
@@ -41,13 +70,25 @@ export const AuthProvider = ({ children }) => {
       const { token } = resp.data;
       if (!token) throw new Error("No se recibió token del servidor");
 
+      // Decodificar token para extraer el rol
+      const decoded = decodeToken(token);
+      console.log("Token decodificado:", decoded);
+      
+      // El JWT contiene el rol en el claim "role" o "authorities"
+      // Ajusta según lo que devuelva tu backend
+      const userRole = decoded.role || decoded.authorities?.[0] || "CLIENTE";
+      
       setToken(token);
       setUsername(userOrEmail);
+      setRole(userRole);
+      
       localStorage.setItem("token", token);
       localStorage.setItem("username", userOrEmail);
-      console.log("✅ Login exitoso");
+      localStorage.setItem("role", userRole);
       
-      return true; // Login OK
+      console.log("✅ Login exitoso. Rol:", userRole);
+      
+      return true;
     } catch (error) {
       console.error("❌ Error en login:", error);
       throw error;
@@ -58,16 +99,21 @@ export const AuthProvider = ({ children }) => {
     console.log("🔒 Cerrando sesión...");
     setToken(null);
     setUsername(null);
+    setRole(null);
     localStorage.removeItem("token");
     localStorage.removeItem("username");
-    // Opcional: Limpiar también datos antiguos del otro contexto si estorban
-    localStorage.removeItem("usuario"); 
+    localStorage.removeItem("role");
+    localStorage.removeItem("usuario");
   };
 
   const value = {
     token,
     username,
-    isAuthenticated: !!token, // Doble negación convierte a booleano real
+    role,
+    isAuthenticated: !!token,
+    isAdmin: role === "ADMIN" || role === "ROLE_ADMIN",
+    isTecnico: role === "TECNICO" || role === "ROLE_TECNICO",
+    isCliente: role === "CLIENTE" || role === "ROLE_CLIENTE",
     login,
     logout,
     loading,
@@ -76,7 +122,6 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Hook personalizado para usar el contexto
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

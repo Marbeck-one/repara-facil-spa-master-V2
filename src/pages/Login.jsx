@@ -1,18 +1,25 @@
 // src/pages/Login.jsx
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
   const navigate = useNavigate();
-
-  const [form, setForm] = useState({ identifier: "", password: "" });
+  const { login } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    username: "",
+    password: ""
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError(""); // Limpiar error al escribir
   };
 
   const handleSubmit = async (e) => {
@@ -21,68 +28,122 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(form.identifier, form.password);
-      navigate("/"); // ruta protegida principal
+      await login(formData.username, formData.password);
+      
+      // Decodificar el token para obtener el rol
+      const token = localStorage.getItem("token");
+      const role = localStorage.getItem("role");
+      
+      console.log("Login exitoso. Rol detectado:", role);
+      
+      // Redirigir según el rol del usuario
+      const normalizedRole = role?.replace("ROLE_", "");
+      
+      if (normalizedRole === "ADMIN") {
+        navigate("/dashboard/admin");
+      } else if (normalizedRole === "TECNICO") {
+        navigate("/dashboard/tecnico");
+      } else if (normalizedRole === "CLIENTE") {
+        navigate("/dashboard/cliente");
+      } else {
+        // Fallback por si el rol no se pudo detectar
+        navigate("/");
+      }
+      
     } catch (err) {
-      setError("Usuario o contraseña incorrectos.");
+      console.error("Error en login:", err);
+      setError(
+        err.response?.data?.message || 
+        "Usuario o contraseña incorrectos"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container my-5">
+    <div className="container mt-5">
       <div className="row justify-content-center">
-        <div className="col-md-4">
-          <div className="card p-4 shadow-sm border-0">
-            <h3 className="text-center text-primary mb-3">Iniciar sesión</h3>
+        <div className="col-md-6 col-lg-4">
+          <div className="card shadow">
+            <div className="card-body p-4">
+              <h2 className="text-center mb-4">🔐 Iniciar Sesión</h2>
+              
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
 
-            {error && <div className="alert alert-danger py-2">{error}</div>}
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label htmlFor="username" className="form-label">
+                    Usuario
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    required
+                    autoFocus
+                  />
+                </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label className="form-label" htmlFor="login-identifier">
-                  Usuario
-                </label>
-                <input
-                  id="login-identifier"
-                  type="text"
-                  name="identifier"
-                  className="form-control"
-                  value={form.identifier}
-                  onChange={handleChange}
-                  required
-                  placeholder="usuario o correo"
-                />
+                <div className="mb-3">
+                  <label htmlFor="password" className="form-label">
+                    Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Iniciando sesión...
+                    </>
+                  ) : (
+                    "Iniciar Sesión"
+                  )}
+                </button>
+              </form>
+
+              <hr className="my-4" />
+
+              <div className="text-center">
+                <p className="text-muted mb-2">Usuarios de prueba:</p>
+                <small className="d-block text-muted">
+                  <strong>Admin:</strong> admin / admin123
+                </small>
+                <small className="d-block text-muted">
+                  <strong>Técnico:</strong> tecnico1 / 123456
+                </small>
               </div>
 
-              <div className="mb-3">
-                <label className="form-label" htmlFor="login-password">
-                  Contraseña
-                </label>
-                <input
-                  id="login-password"
-                  type="password"
-                  name="password"
-                  className="form-control"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                />
+              <div className="text-center mt-3">
+                <small className="text-muted">
+                  ¿No tienes cuenta?{" "}
+                  <a href="/register" className="text-decoration-none">
+                    Regístrate aquí
+                  </a>
+                </small>
               </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary w-100"
-                disabled={loading}
-              >
-                {loading ? "Ingresando..." : "Entrar"}
-              </button>
-            </form>
-
-            <p className="text-center mt-3 mb-0 small">
-              ¿No tienes cuenta? <Link to="/register">Regístrate aquí</Link>
-            </p>
+            </div>
           </div>
         </div>
       </div>
