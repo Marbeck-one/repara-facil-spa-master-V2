@@ -32,17 +32,26 @@ export const AuthProvider = ({ children }) => {
     try {
       const storedToken = localStorage.getItem("token");
       const storedUser = localStorage.getItem("username");
-      const storedRole = localStorage.getItem("role");
       
       if (storedToken) {
         console.log("✅ AuthContext: Token encontrado, restaurando sesión.");
-        setToken(storedToken);
-        setUsername(storedUser);
-        setRole(storedRole);
         
-        // Verificar si el token sigue válido (opcional)
+        // ✅ DECODIFICAR TOKEN PARA OBTENER ROL
         const decoded = decodeToken(storedToken);
-        if (decoded && decoded.exp * 1000 < Date.now()) {
+        
+        if (decoded && decoded.exp * 1000 > Date.now()) {
+          // Token válido
+          const userRole = decoded.role || decoded.authorities?.[0]?.replace("ROLE_", "") || "CLIENTE";
+          
+          setToken(storedToken);
+          setUsername(storedUser || decoded.sub);
+          setRole(userRole);
+          
+          // Guardar el rol en localStorage si no estaba
+          localStorage.setItem("role", userRole);
+          
+          console.log("✅ Sesión restaurada. Rol:", userRole);
+        } else {
           console.warn("⚠️ Token expirado, limpiando sesión");
           localStorage.clear();
           setToken(null);
@@ -70,13 +79,12 @@ export const AuthProvider = ({ children }) => {
       const { token } = resp.data;
       if (!token) throw new Error("No se recibió token del servidor");
 
-      // Decodificar token para extraer el rol
+      // ✅ DECODIFICAR TOKEN PARA EXTRAER EL ROL
       const decoded = decodeToken(token);
       console.log("Token decodificado:", decoded);
       
-      // El JWT contiene el rol en el claim "role" o "authorities"
-      // Ajusta según lo que devuelva tu backend
-      const userRole = decoded.role || decoded.authorities?.[0] || "CLIENTE";
+      // Extraer rol limpio (sin "ROLE_")
+      const userRole = decoded.role || decoded.authorities?.[0]?.replace("ROLE_", "") || "CLIENTE";
       
       setToken(token);
       setUsername(userOrEmail);
@@ -111,9 +119,9 @@ export const AuthProvider = ({ children }) => {
     username,
     role,
     isAuthenticated: !!token,
-    isAdmin: role === "ADMIN" || role === "ROLE_ADMIN",
-    isTecnico: role === "TECNICO" || role === "ROLE_TECNICO",
-    isCliente: role === "CLIENTE" || role === "ROLE_CLIENTE",
+    isAdmin: role === "ADMIN",
+    isTecnico: role === "TECNICO",
+    isCliente: role === "CLIENTE",
     login,
     logout,
     loading,
