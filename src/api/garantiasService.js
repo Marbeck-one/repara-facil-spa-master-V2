@@ -1,20 +1,25 @@
 import api from "./api";
 
 // Obtener todas las garantías
-export async function getGarantias() {
+export const getGarantias = async () => {
   const response = await api.get("/garantias");
   return response.data;
-}
+};
 
-// Consultar una garantía específica por ID
-export async function getGarantiaById(id) {
-  // El backend retorna 404 si no existe, lo manejaremos en el componente
-  const response = await api.get(`/garantias/${id}`);
+// Crear una nueva garantía
+export const createGarantia = async (data) => {
+  const response = await api.post("/garantias", data);
   return response.data;
-}
+};
 
-// Crear garantía (esto se usaría internamente cuando un técnico finaliza un trabajo)
-export async function createGarantia(garantia) {
-  const response = await api.post("/garantias", garantia);
+// Actualizar una garantía existente
+export const updateGarantia = async (id, data) => {
+  const response = await api.put(`/garantias/${id}`, data);
   return response.data;
-}
+};
+
+// Eliminar una garantía (Esta es la que te faltaba)
+export const deleteGarantia = async (id) => {
+  const response = await api.delete(`/garantias/${id}`);
+  return response.data;
+};
