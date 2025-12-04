@@ -3,10 +3,11 @@ import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import { getClientes } from "../api/clientesService";
 import { getTecnicos } from "../api/tecnicosService";
 import { createServicio } from "../api/serviciosService";
+import { createAgenda } from "../api/agendaService"; // <--- Importamos servicio de Agenda
 import { useAuth } from "../context/AuthContext";
 
 export default function ScheduleModal({ show, onClose, service, onSuccess }) {
-  const { username, role } = useAuth(); // Usamos role directamente para asegurar compatibilidad
+  const { username, role } = useAuth();
   
   const [clientes, setClientes] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
@@ -14,68 +15,85 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
   const [clienteId, setClienteId] = useState("");
   const [tecnicoId, setTecnicoId] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [fechaInicio, setFechaInicio] = useState(""); // Nuevo estado para la fecha
   const [loading, setLoading] = useState(false);
 
-  // Definimos la variable aquí para asegurar que funcione siempre
   const esCliente = role === "CLIENTE" || role === "ROLE_CLIENTE";
 
   useEffect(() => {
     if (show) {
+      // Pre-llenar descripción si viene un servicio seleccionado
       if (service) setDescripcion(`Solicitud de: ${service.nombre}`);
+      setFechaInicio(""); // Limpiar fecha al abrir
 
-      // 1. Cargar Clientes (y auto-asignar si soy cliente)
+      // Cargar datos necesarios
       getClientes().then((data) => {
         setClientes(data);
         if (esCliente) {
-          // Buscamos mi propio ID de cliente usando el email del login
-          const miPerfil = data.find(c => c.email?.toLowerCase() === username?.toLowerCase());
-          if (miPerfil) {
-            console.log("✅ Cliente identificado automáticamente:", miPerfil.nombre);
-            setClienteId(miPerfil.id);
-          } else {
-            console.warn("⚠️ No se encontró ficha de cliente para:", username);
-          }
+          // Auto-seleccionar al usuario logueado
+          const miPerfil = data.find(c => c.email?.trim().toLowerCase() === username?.trim().toLowerCase());
+          if (miPerfil) setClienteId(miPerfil.id);
         }
-      }).catch(err => console.error("Error cargando clientes:", err));
+      }).catch(console.error);
 
-      // 2. Cargar Técnicos (Siempre visibles)
       getTecnicos().then((data) => {
-        console.log("🔧 Técnicos cargados:", data.length);
-        const disponibles = data.filter(t => t.disponible); 
-        setTecnicos(disponibles);
-      }).catch(err => console.error("Error cargando técnicos:", err));
+        setTecnicos(data.filter(t => t.disponible)); 
+      }).catch(console.error);
     }
   }, [show, service, username, esCliente]);
 
   const handleSave = async () => {
     if (!clienteId || !descripcion) {
-      alert("Error: Faltan datos (Cliente no identificado o descripción vacía).");
+      alert("Por favor completa los campos obligatorios.");
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
-        descripcionProblema: descripcion,
-        estado: "PENDIENTE",
-        cliente: { id: parseInt(clienteId) }
-      };
+      // LÓGICA DUAL:
+      // 1. Si eligió FECHA -> Creamos AGENDA (Cita confirmada)
+      // 2. Si NO eligió FECHA -> Creamos SERVICIO (Solicitud pendiente)
+      
+      if (fechaInicio) {
+        // --- CREAR AGENDA ---
+        const fechaInicioISO = new Date(fechaInicio).toISOString();
+        const fechaFinDate = new Date(fechaInicio);
+        fechaFinDate.setHours(fechaFinDate.getHours() + 2); // Duración por defecto 2hrs
 
-      // Si el usuario seleccionó un técnico, lo agregamos al envío
-      if (tecnicoId) {
-        payload.tecnico = { id: parseInt(tecnicoId) };
-        payload.estado = "ASIGNADO"; // Cambiamos el estado automáticamente
+        const payloadAgenda = {
+            fechaHoraInicio: fechaInicioISO,
+            fechaHoraFin: fechaFinDate.toISOString(),
+            estado: "RESERVADO",
+            tecnico: tecnicoId ? { id: parseInt(tecnicoId) } : null,
+            servicio: {
+                descripcionProblema: descripcion,
+                estado: "ASIGNADO", // Nace asignado porque tiene fecha
+                cliente: { id: parseInt(clienteId) },
+                tecnico: tecnicoId ? { id: parseInt(tecnicoId) } : null
+            }
+        };
+        
+        await createAgenda(payloadAgenda);
+        alert("¡Cita agendada exitosamente!");
+
+      } else {
+        // --- CREAR SOLICITUD DE SERVICIO ---
+        const payloadServicio = {
+            descripcionProblema: descripcion,
+            estado: "PENDIENTE",
+            cliente: { id: parseInt(clienteId) },
+            tecnico: tecnicoId ? { id: parseInt(tecnicoId) } : null
+        };
+        
+        await createServicio(payloadServicio);
+        alert("¡Solicitud enviada! Un técnico te contactará para coordinar.");
       }
 
-      console.log("Enviando servicio:", payload);
-      await createServicio(payload);
-
-      alert("¡Servicio agendado exitosamente!");
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("Hubo un problema al guardar el servicio.");
+      alert("Hubo un error. Verifica que el Backend esté corriendo y actualizado.");
     } finally {
       setLoading(false);
     }
@@ -85,81 +103,75 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
 
   return (
     <Modal show={show} onHide={onClose} centered>
-      <Modal.Header closeButton>
+      <Modal.Header closeButton className="bg-primary text-white">
         <Modal.Title>Agendar: {service.nombre}</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
+      <Modal.Body className="p-4">
         <Form>
           <Row className="g-3">
             
-            {/* --- SECCIÓN 1: CLIENTE (Solo visible si NO eres cliente) --- */}
+            {/* Cliente (Solo si es admin/técnico) */}
             {!esCliente && (
               <Col md={12}>
-                <Form.Label className="fw-bold">Seleccionar Cliente</Form.Label>
-                <Form.Select 
-                  value={clienteId} 
-                  onChange={(e) => setClienteId(e.target.value)}
-                >
-                  <option value="">-- Selecciona un cliente --</option>
+                <Form.Label className="fw-bold">Cliente</Form.Label>
+                <Form.Select value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+                  <option value="">-- Selecciona --</option>
                   {clientes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre} {c.apellido} ({c.email})
-                    </option>
+                    <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
                   ))}
                 </Form.Select>
               </Col>
             )}
 
-            {/* Si eres cliente, mostramos esto solo para que sepas que el sistema te reconoció */}
-            {esCliente && (
-               <Col md={12}>
-                 <Form.Label className="text-muted small">Reservando como:</Form.Label>
-                 <Form.Control type="text" value={username} disabled className="bg-light text-muted" size="sm" />
-               </Col>
-            )}
-
-            {/* --- SECCIÓN 2: TÉCNICO (Visible para TODOS) --- */}
-            {/* Este bloque está 100% fuera de las condiciones anteriores */}
-            <Col md={12}>
-              <Form.Label className="fw-bold text-primary">Elige tu Técnico (Opcional)</Form.Label>
-              <Form.Select 
-                value={tecnicoId} 
-                onChange={(e) => setTecnicoId(e.target.value)}
-                style={{ border: "2px solid #0d6efd" }} // Borde azul para destacar
-              >
-                <option value="">-- Asignación automática (cualquier disponible) --</option>
-                {tecnicos.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre} {t.apellido} - {t.especialidad}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                Si seleccionas uno, la cita quedará asignada inmediatamente.
-              </Form.Text>
-            </Col>
-
-            {/* --- SECCIÓN 3: DETALLE --- */}
+            {/* Problema */}
             <Col md={12}>
               <Form.Label className="fw-bold">Detalle del Problema</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Describe brevemente qué sucede..."
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
+              <Form.Control 
+                as="textarea" 
+                rows={2} 
+                value={descripcion} 
+                onChange={(e) => setDescripcion(e.target.value)} 
               />
+            </Col>
+
+            {/* SECCIÓN DE FECHA (OPCIONAL) */}
+            <Col md={12}>
+                <div className="p-3 bg-light rounded border mt-2">
+                    <h6 className="text-primary fw-bold mb-3">
+                        <i className="bi bi-calendar-check me-2"></i>¿Cuándo lo necesitas?
+                    </h6>
+                    <Row>
+                        <Col md={6}>
+                            <Form.Label className="small fw-bold">Fecha y Hora</Form.Label>
+                            <Form.Control 
+                                type="datetime-local" 
+                                value={fechaInicio} 
+                                onChange={(e) => setFechaInicio(e.target.value)} 
+                            />
+                            <Form.Text className="text-muted" style={{fontSize:"0.75rem"}}>
+                                Si lo dejas vacío, quedará como solicitud pendiente.
+                            </Form.Text>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Label className="small fw-bold">Técnico Preferido</Form.Label>
+                            <Form.Select value={tecnicoId} onChange={(e) => setTecnicoId(e.target.value)}>
+                                <option value="">-- Cualquiera --</option>
+                                {tecnicos.map((t) => (
+                                <option key={t.id} value={t.id}>{t.nombre} {t.apellido}</option>
+                                ))}
+                            </Form.Select>
+                        </Col>
+                    </Row>
+                </div>
             </Col>
 
           </Row>
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onClose} disabled={loading}>
-          Cancelar
-        </Button>
-        <Button variant="primary" onClick={handleSave} disabled={loading}>
-          {loading ? "Procesando..." : "Confirmar Cita"}
+        <Button variant="secondary" onClick={onClose} disabled={loading}>Cancelar</Button>
+        <Button variant="success" onClick={handleSave} disabled={loading}>
+          {loading ? "Procesando..." : (fechaInicio ? "Confirmar Cita" : "Enviar Solicitud")}
         </Button>
       </Modal.Footer>
     </Modal>

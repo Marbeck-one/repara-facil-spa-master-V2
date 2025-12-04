@@ -200,7 +200,7 @@ export default function Clientes() {
               </div>
             )}
 
-            {/* --- VISTA LIST (Tabla) --- */}
+            {/* --- VISTA LIST (Tabla Mejorada) --- */}
             {viewMode === 'list' && (
               <div className="card shadow border-0 overflow-hidden">
                 <div className="table-responsive">
@@ -210,7 +210,8 @@ export default function Clientes() {
                         <th className="ps-4 py-3">Cliente</th>
                         <th>Contacto</th>
                         <th>Dirección</th>
-                        <th className="text-end pe-4">Acciones</th>
+                        {/* Aumentamos el ancho mínimo para acomodar botones grandes */}
+                        <th className="text-end pe-4" style={{ minWidth: "220px" }}>Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white">
@@ -243,21 +244,20 @@ export default function Clientes() {
                           </td>
                           <td className="text-end pe-4">
                             <div className="d-flex justify-content-end gap-2">
+                              {/* --- BOTONES MEJORADOS --- */}
                               <Button 
-                                variant="outline-primary" 
-                                size="sm" 
+                                variant="warning" 
+                                className="text-dark fw-bold"
                                 onClick={() => handleOpenEdit(c)}
-                                title="Editar"
                               >
-                                <i className="bi bi-pencil-square"></i>
+                                <i className="bi bi-pencil-fill me-1"></i> Editar
                               </Button>
                               <Button 
-                                variant="outline-danger" 
-                                size="sm" 
+                                variant="danger" 
+                                className="fw-bold"
                                 onClick={() => handleDelete(c.id)}
-                                title="Eliminar"
                               >
-                                <i className="bi bi-trash"></i>
+                                <i className="bi bi-trash-fill me-1"></i> Eliminar
                               </Button>
                             </div>
                           </td>
