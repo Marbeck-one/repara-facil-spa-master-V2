@@ -3,7 +3,7 @@ import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import { getClientes } from "../api/clientesService";
 import { getTecnicos } from "../api/tecnicosService";
 import { createServicio } from "../api/serviciosService";
-import { createAgenda } from "../api/agendaService"; // <--- Importamos servicio de Agenda
+import { createAgenda } from "../api/agendaService"; 
 import { useAuth } from "../context/AuthContext";
 
 export default function ScheduleModal({ show, onClose, service, onSuccess }) {
@@ -15,22 +15,19 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
   const [clienteId, setClienteId] = useState("");
   const [tecnicoId, setTecnicoId] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [fechaInicio, setFechaInicio] = useState(""); // Nuevo estado para la fecha
+  const [fechaInicio, setFechaInicio] = useState(""); 
   const [loading, setLoading] = useState(false);
 
   const esCliente = role === "CLIENTE" || role === "ROLE_CLIENTE";
 
   useEffect(() => {
     if (show) {
-      // Pre-llenar descripción si viene un servicio seleccionado
       if (service) setDescripcion(`Solicitud de: ${service.nombre}`);
-      setFechaInicio(""); // Limpiar fecha al abrir
+      setFechaInicio(""); 
 
-      // Cargar datos necesarios
       getClientes().then((data) => {
         setClientes(data);
         if (esCliente) {
-          // Auto-seleccionar al usuario logueado
           const miPerfil = data.find(c => c.email?.trim().toLowerCase() === username?.trim().toLowerCase());
           if (miPerfil) setClienteId(miPerfil.id);
         }
@@ -50,34 +47,40 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
 
     setLoading(true);
     try {
-      // LÓGICA DUAL:
-      // 1. Si eligió FECHA -> Creamos AGENDA (Cita confirmada)
-      // 2. Si NO eligió FECHA -> Creamos SERVICIO (Solicitud pendiente)
-      
       if (fechaInicio) {
-        // --- CREAR AGENDA ---
-        const fechaInicioISO = new Date(fechaInicio).toISOString();
-        const fechaFinDate = new Date(fechaInicio);
-        fechaFinDate.setHours(fechaFinDate.getHours() + 2); // Duración por defecto 2hrs
+        // --- CREAR AGENDA (Cita) ---
+        // TRUCO: datetime-local devuelve "YYYY-MM-DDTHH:mm".
+        // LocalDateTime espera "YYYY-MM-DDTHH:mm:ss".
+        // Solo agregamos ":00" al final. NO USAR toISOString() para evitar conflictos de zona horaria.
+        const fechaInicioEnvio = fechaInicio + ":00"; 
+        
+        // Calcular fecha fin manualmente (2 horas despues) manteniendo formato local
+        const d = new Date(fechaInicio);
+        d.setHours(d.getHours() + 2);
+        
+        // Función helper para formatear a YYYY-MM-DDTHH:mm:ss
+        const pad = (n) => n.toString().padStart(2, '0');
+        const fechaFinEnvio = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
 
         const payloadAgenda = {
-            fechaHoraInicio: fechaInicioISO,
-            fechaHoraFin: fechaFinDate.toISOString(),
+            fechaHoraInicio: fechaInicioEnvio,
+            fechaHoraFin: fechaFinEnvio,
             estado: "RESERVADO",
             tecnico: tecnicoId ? { id: parseInt(tecnicoId) } : null,
             servicio: {
                 descripcionProblema: descripcion,
-                estado: "ASIGNADO", // Nace asignado porque tiene fecha
+                estado: "ASIGNADO",
                 cliente: { id: parseInt(clienteId) },
                 tecnico: tecnicoId ? { id: parseInt(tecnicoId) } : null
             }
         };
         
+        console.log("Enviando Agenda:", payloadAgenda);
         await createAgenda(payloadAgenda);
         alert("¡Cita agendada exitosamente!");
 
       } else {
-        // --- CREAR SOLICITUD DE SERVICIO ---
+        // --- CREAR SOLICITUD DE SERVICIO (Sin fecha) ---
         const payloadServicio = {
             descripcionProblema: descripcion,
             estado: "PENDIENTE",
@@ -85,15 +88,20 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
             tecnico: tecnicoId ? { id: parseInt(tecnicoId) } : null
         };
         
+        console.log("Enviando Servicio:", payloadServicio);
         await createServicio(payloadServicio);
-        alert("¡Solicitud enviada! Un técnico te contactará para coordinar.");
+        alert("¡Solicitud enviada! Un técnico te contactará.");
       }
 
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("Hubo un error. Verifica que el Backend esté corriendo y actualizado.");
+      if (error.response) {
+          alert(`Error del servidor: ${JSON.stringify(error.response.data)}`);
+      } else {
+          alert("Hubo un error de conexión.");
+      }
     } finally {
       setLoading(false);
     }
@@ -109,8 +117,6 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
       <Modal.Body className="p-4">
         <Form>
           <Row className="g-3">
-            
-            {/* Cliente (Solo si es admin/técnico) */}
             {!esCliente && (
               <Col md={12}>
                 <Form.Label className="fw-bold">Cliente</Form.Label>
@@ -123,7 +129,6 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
               </Col>
             )}
 
-            {/* Problema */}
             <Col md={12}>
               <Form.Label className="fw-bold">Detalle del Problema</Form.Label>
               <Form.Control 
@@ -134,7 +139,6 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
               />
             </Col>
 
-            {/* SECCIÓN DE FECHA (OPCIONAL) */}
             <Col md={12}>
                 <div className="p-3 bg-light rounded border mt-2">
                     <h6 className="text-primary fw-bold mb-3">
@@ -164,7 +168,6 @@ export default function ScheduleModal({ show, onClose, service, onSuccess }) {
                     </Row>
                 </div>
             </Col>
-
           </Row>
         </Form>
       </Modal.Body>
