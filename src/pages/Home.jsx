@@ -1,75 +1,95 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
-import heroImage from "../assets/tecnico_electrodomestico.png"; // se mantiene
+import heroImage from "../assets/tecnico_electrodomestico.png";
+import { getTecnicos } from "../api/tecnicosService";
+import { getServicios } from "../api/serviciosService";
 
 export default function Home() {
   const navigate = useNavigate();
+  
+  // Estados para datos reales
+  const [tecnicos, setTecnicos] = useState([]);
+  const [servicios, setServicios] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    cargarDatosPublicos();
+  }, []);
+
+  const cargarDatosPublicos = async () => {
+    try {
+      // Cargamos datos del backend
+      const [techRes, servRes] = await Promise.all([
+        getTecnicos(),
+        getServicios()
+      ]);
+
+      // Tomamos solo los primeros 3 para mostrar en el inicio
+      setTecnicos(techRes.slice(0, 3));
+      
+      // Si la API de servicios devuelve un array directo, lo usamos. 
+      // Si devuelve un objeto con .data, lo ajustamos (tu api/servicios parece devolver array directo).
+      const listaServicios = Array.isArray(servRes) ? servRes : servRes.data || [];
+      setServicios(listaServicios.slice(0, 3));
+
+    } catch (error) {
+      console.error("Error cargando home:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="home-page">
-      {/* HERO FULL WIDTH */}
+      {/* HERO SECTION */}
       <section className="hero-section d-flex align-items-center">
         <div className="container-fluid px-4 px-lg-5 hero-inner">
           <div className="row align-items-center">
-            {/* Texto */}
             <div className="col-lg-6 mb-4 mb-lg-0 hero-text re-fade-up">
-              <p className="badge bg-light text-primary mb-3">
-                🔧 Servicio técnico a domicilio
+              <p className="badge bg-light text-primary mb-3 rounded-pill px-3 py-2">
+                <i className="bi bi-wrench-adjustable me-2"></i>
+                Servicio técnico experto
               </p>
-              <h1 className="display-5 fw-bold text-white mb-3">
-                ReparaFácil SPA
+              <h1 className="display-4 fw-bold text-white mb-3">
+                Expertos en reparaciones <br/>
+                <span className="text-warning">al instante.</span>
               </h1>
               <p className="lead text-white-50 mb-4">
-                Reparamos tus electrodomésticos y servicios del hogar de forma
-                rápida, segura y sin salir de tu casa. Agenda en línea y un
-                técnico certificado irá a tu domicilio.
+                Conectamos a los mejores técnicos certificados con tus necesidades del hogar. 
+                Rápido, seguro y garantizado.
               </p>
               <div className="d-flex flex-wrap gap-3">
-                <Link to="/agenda" className="btn btn-warning btn-lg">
-                  Ver tu agenda
-                </Link>
-                {/* Botón (no link) para que el test lo detecte por role="button" */}
                 <button
-                  type="button"
-                  className="btn btn-outline-light btn-lg"
+                  className="btn btn-primary btn-lg shadow-lg px-4"
+                  onClick={() => navigate("/agenda")}
+                >
+                  Agendar Visita
+                </button>
+                <button
+                  className="btn btn-outline-light btn-lg px-4"
                   onClick={() => navigate("/servicios")}
                 >
-                  Ver servicios
+                  Ver Servicios
                 </button>
-              </div>
-              <div className="d-flex gap-4 mt-4 text-white-50 small">
-                <div>
-                  <span className="fw-semibold text-white">+5000</span>
-                  <br />
-                  servicios realizados
-                </div>
-                <div>
-                  <span className="fw-semibold text-white">24/7</span>
-                  <br />
-                  atención online
-                </div>
-                <div>
-                  <span className="fw-semibold text-white">Garantía</span>
-                  <br />
-                  en todas las reparaciones
-                </div>
               </div>
             </div>
 
-            {/* Imagen hero */}
-            <div className="col-lg-6 hero-image-wrapper re-float">
-              <div className="hero-image-card">
+            <div className="col-lg-6 hero-image-wrapper re-float d-none d-lg-block">
+              <div className="hero-image-card rounded-4 overflow-hidden shadow-lg" style={{maxWidth: '600px'}}>
                 <img
                   src={heroImage}
-                  alt="Técnico reparando electrodoméstico"
-                  className="hero-main-image img-fluid"
+                  alt="Técnico Profesional"
+                  className="img-fluid w-100"
+                  style={{objectFit: 'cover', height: '100%'}}
                 />
-                <div className="hero-badge shadow">
-                  <span className="hero-badge-icon">⭐</span>
-                  <div>
-                    <div className="small text-white-50">Clientes felices</div>
-                    <div className="fw-semibold text-white">4.8 / 5.0</div>
+                <div className="hero-badge shadow bg-white text-dark p-3 rounded-3 position-absolute bottom-0 start-0 m-4 d-flex align-items-center gap-3">
+                  <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style={{width: '45px', height: '45px'}}>
+                    <i className="bi bi-shield-check fs-4"></i>
+                  </div>
+                  <div style={{lineHeight: '1.2'}}>
+                    <div className="fw-bold">Garantía Total</div>
+                    <small className="text-muted">En todos los trabajos</small>
                   </div>
                 </div>
               </div>
@@ -79,198 +99,126 @@ export default function Home() {
       </section>
 
       {/* FRANJA DE CONFIANZA */}
-      <section className="trust-strip py-4">
+      <section className="trust-strip py-5 bg-white border-bottom">
         <div className="container">
-          <div className="row text-center text-md-start">
-            <div className="col-md-4 mb-3 mb-md-0 re-fade-up re-delay-1">
-              <h6 className="mb-1 fw-semibold">
-                💳 Pago seguro y garantizado
-              </h6>
-              <p className="mb-0 text-muted small">
-                Transferencia, tarjeta o efectivo al finalizar el servicio.
-              </p>
+          <div className="row text-center g-4">
+            <div className="col-md-4">
+              <div className="p-3">
+                <i className="bi bi-credit-card-2-front display-6 text-primary mb-3 d-block"></i>
+                <h5 className="fw-bold">Pago Seguro</h5>
+                <p className="text-muted small">Transacciones protegidas y transparentes.</p>
+              </div>
             </div>
-            <div className="col-md-4 mb-3 mb-md-0 re-fade-up re-delay-2">
-              <h6 className="mb-1 fw-semibold">📍 Cobertura por comunas</h6>
-              <p className="mb-0 text-muted small">
-                Técnicos en distintas zonas para llegar más rápido a tu hogar.
-              </p>
+            <div className="col-md-4">
+              <div className="p-3">
+                <i className="bi bi-geo-alt display-6 text-primary mb-3 d-block"></i>
+                <h5 className="fw-bold">Cobertura Total</h5>
+                <p className="text-muted small">Llegamos a todas las comunas de la región.</p>
+              </div>
             </div>
-            <div className="col-md-4 re-fade-up re-delay-3">
-              <h6 className="mb-1 fw-semibold">🕒 Agenda en minutos</h6>
-              <p className="mb-0 text-muted small">
-                Elige día y horario según tu disponibilidad.
-              </p>
+            <div className="col-md-4">
+              <div className="p-3">
+                <i className="bi bi-clock-history display-6 text-primary mb-3 d-block"></i>
+                <h5 className="fw-bold">Atención Rápida</h5>
+                <p className="text-muted small">Agenda en minutos, recibe ayuda hoy.</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SERVICIOS DESTACADOS */}
-      <section className="py-5 section-light">
+      {/* SERVICIOS DESTACADOS (REALES) */}
+      <section className="py-5 bg-light">
         <div className="container">
-          <div className="text-center mb-4 re-fade-up">
-            <h2 className="fw-bold mb-2">Servicios que ofrecemos</h2>
-            <p className="text-muted">
-              Especialistas en reparaciones del hogar y electrodomésticos.
-            </p>
+          <div className="d-flex justify-content-between align-items-end mb-5">
+            <div>
+              <h2 className="fw-bold mb-1">Nuestros Servicios</h2>
+              <p className="text-muted mb-0">Soluciones profesionales para tu hogar</p>
+            </div>
+            <Link to="/servicios" className="btn btn-outline-primary btn-sm">Ver todos</Link>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-5"><div className="spinner-border text-primary"></div></div>
+          ) : (
+            <div className="row g-4">
+              {servicios.length > 0 ? servicios.map((s) => (
+                <div className="col-md-4" key={s.id}>
+                  <div className="card h-100 border-0 shadow-sm hover-card">
+                    <div className="card-body p-4">
+                      <div className="mb-3 text-primary">
+                        <i className="bi bi-tools fs-2"></i>
+                      </div>
+                      <h5 className="card-title fw-bold">{s.descripcionProblema}</h5>
+                      <p className="card-text text-muted small">
+                        Servicio profesional garantizado. Diagnóstico y reparación incluidos.
+                      </p>
+                      <span className="badge bg-light text-dark border mt-2">{s.estado}</span>
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <div className="col-12 text-center text-muted">No hay servicios destacados por el momento.</div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* TÉCNICOS DESTACADOS (REALES) */}
+      <section className="py-5 section-dark bg-dark text-white">
+        <div className="container">
+          <div className="text-center mb-5">
+            <h2 className="fw-bold">Conoce a nuestros expertos</h2>
+            <p className="text-white-50">Profesionales certificados listos para ayudarte</p>
           </div>
 
           <div className="row g-4">
-            {[
-              {
-                icon: "⚡",
-                titulo: "Electricidad domiciliaria",
-                texto:
-                  "Instalaciones, enchufes, diferenciales, cortocircuitos y más.",
-              },
-              {
-                icon: "🔥",
-                titulo: "Gasfitería y calefont",
-                texto:
-                  "Revisión de fugas, cambio de llaves, mantención de calefont.",
-              },
-              {
-                icon: "🧺",
-                titulo: "Línea blanca",
-                texto:
-                  "Lavadoras, refrigeradores, secadoras y otros electrodomésticos.",
-              },
-            ].map((s, i) => (
-              <div
-                className="col-md-4 re-fade-up"
-                key={s.titulo}
-                style={{ animationDelay: `${0.1 * (i + 1)}s` }}
-              >
-                <div className="service-card h-100 p-4 rounded-4 shadow-sm">
-                  <div className="service-icon mb-3">{s.icon}</div>
-                  <h5 className="fw-semibold mb-2">{s.titulo}</h5>
-                  <p className="text-muted small mb-3">{s.texto}</p>
-                  <Link to="/servicios" className="small text-primary">
-                    Ver más detalles →
-                  </Link>
+            {tecnicos.length > 0 ? tecnicos.map((t) => (
+              <div className="col-md-4" key={t.id}>
+                <div className="card h-100 border-0 bg-secondary bg-opacity-10 text-white">
+                  <div className="card-body text-center p-4">
+                    <img 
+                      src={t.foto || "https://via.placeholder.com/100"} 
+                      alt={t.nombre}
+                      className="rounded-circle mb-3 border border-3 border-primary"
+                      style={{width: '100px', height: '100px', objectFit: 'cover'}}
+                      onError={(e) => e.target.src = "https://via.placeholder.com/100"}
+                    />
+                    <h5 className="fw-bold mb-1">{t.nombre} {t.apellido}</h5>
+                    <p className="text-info small mb-2">{t.especialidad}</p>
+                    <div className="d-flex justify-content-center gap-1 text-warning small mb-3">
+                      <i className="bi bi-star-fill"></i>
+                      <i className="bi bi-star-fill"></i>
+                      <i className="bi bi-star-fill"></i>
+                      <i className="bi bi-star-fill"></i>
+                      <i className="bi bi-star-half"></i>
+                    </div>
+                    <button className="btn btn-sm btn-light w-100" onClick={() => navigate(`/agenda?tech=${t.id}`)}>
+                      Contratar
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="col-12 text-center text-white-50">Pronto se unirán nuevos técnicos.</div>
+            )}
+          </div>
+          
+          <div className="text-center mt-5">
+             <Link to="/tecnicos" className="btn btn-outline-light px-4 rounded-pill">Ver todo el equipo</Link>
           </div>
         </div>
       </section>
 
-      {/* TÉCNICOS DESTACADOS (para el test del title="Técnico: ...") */}
-      <section className="py-5 section-light">
+      {/* CTA FINAL */}
+      <section className="py-5 bg-primary text-white text-center">
         <div className="container">
-          <div className="text-center mb-4 re-fade-up">
-            <h2 className="fw-bold mb-2">Técnicos destacados</h2>
-            <p className="text-muted">
-              Conoce algunos de los profesionales que trabajan con nosotros.
-            </p>
-          </div>
-
-          <div className="row g-4">
-            {[
-              {
-                nombre: "Juan Pérez",
-                especialidad: "Electricidad domiciliaria",
-              },
-              {
-                nombre: "María González",
-                especialidad: "Reparación de línea blanca",
-              },
-              {
-                nombre: "Carlos López",
-                especialidad: "Gasfitería y calefont",
-              },
-            ].map((tec) => (
-              <div className="col-md-4" key={tec.nombre}>
-                <div
-                  className="card h-100 shadow-sm"
-                  title={`Técnico: ${tec.nombre}`}
-                >
-                  <div className="card-body">
-                    <h5 className="card-title">{tec.nombre}</h5>
-                    <p className="card-text text-muted small">
-                      {tec.especialidad}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CÓMO FUNCIONA */}
-      <section className="py-5 section-dark text-white">
-        <div className="container">
-          <div className="row align-items-center g-4">
-            <div className="col-lg-6 re-fade-up">
-              <h2 className="fw-bold mb-3">¿Cómo funciona ReparaFácil?</h2>
-              <p className="text-white-50 mb-4">
-                Agenda tu servicio en minutos y deja que nuestro equipo se
-                encargue del resto.
-              </p>
-
-              <ol className="timeline list-unstyled">
-                <li className="timeline-step">
-                  <span className="bullet">1</span>
-                  <div className="step-text">
-                    <h6 className="mb-1">Elige el servicio</h6>
-                    <p className="text-white-50 small mb-0">
-                      Selecciona el tipo de reparación que necesitas desde la
-                      web.
-                    </p>
-                  </div>
-                </li>
-                <li className="timeline-step">
-                  <span className="bullet">2</span>
-                  <div className="step-text">
-                    <h6 className="mb-1">Agenda fecha y hora</h6>
-                    <p className="text-white-50 small mb-0">
-                      Indica tu comuna, franja horaria y datos de contacto.
-                    </p>
-                  </div>
-                </li>
-                <li className="timeline-step">
-                  <span className="bullet">3</span>
-                  <div className="step-text">
-                    <h6 className="mb-1">Recibe al técnico</h6>
-                    <p className="text-white-50 small mb-0">
-                      Un técnico certificado te visitará para diagnosticar y
-                      reparar.
-                    </p>
-                  </div>
-                </li>
-              </ol>
-            </div>
-
-            {/* CTA siempre visible (sin usar useApp para no romper los tests) */}
-            <div className="col-lg-6 re-fade-up re-delay-2">
-              <div className="cta-box p-4 rounded-4">
-                <h5 className="fw-semibold mb-2">¿Listo para agendar?</h5>
-                <p className="text-white-50 mb-3">
-                  Crea tu cuenta, agenda tu visita y realiza seguimiento desde
-                  la misma plataforma.
-                </p>
-                <div className="d-flex flex-wrap gap-3">
-                  <button
-                    className="btn btn-light"
-                    onClick={() => navigate("/register")}
-                  >
-                    Crear cuenta
-                  </button>
-                  <button
-                    className="btn btn-outline-light"
-                    onClick={() => navigate("/login")}
-                  >
-                    Ya tengo cuenta
-                  </button>
-                </div>
-                <p className="small text-white-50 mt-3 mb-0">
-                  Atención de lunes a sábado, en horario extendido.
-                </p>
-              </div>
-            </div>
-          </div>
+          <h2 className="fw-bold mb-3">¿Listo para solucionar tu problema?</h2>
+          <p className="lead mb-4 text-white-50">No dejes que una avería arruine tu día. Agenda ahora mismo.</p>
+          <button className="btn btn-light btn-lg px-5 rounded-pill fw-bold" onClick={() => navigate("/agenda")}>
+            Agendar Cita Ahora
+          </button>
         </div>
       </section>
     </div>

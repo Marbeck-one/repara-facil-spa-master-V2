@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Importamos useNavigate
 import api from "../api/api";
-// 1. IMPORTANTE: Agregamos updateTecnico a los imports
-import { createTecnico, deleteTecnico, updateTecnico } from "../api/tecnicosService"; 
+import { createTecnico, deleteTecnico, updateTecnico, getTecnicos } from "../api/tecnicosService"; 
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 
 export default function DashboardAdmin() {
   const { username } = useAuth();
+  const navigate = useNavigate(); // Hook para navegación
   
   // --- ESTADÍSTICAS ---
   const [stats, setStats] = useState({
@@ -17,18 +17,17 @@ export default function DashboardAdmin() {
     totalGarantias: 0
   });
 
-  // --- TABLA DE TÉCNICOS ---
+  // --- GESTIÓN TÉCNICOS ---
   const [tecnicosLista, setTecnicosLista] = useState([]);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   
-  // Estados de UI
+  // Estados de UI y Modal
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState(null);
 
-  // 2. NUEVO: Estado para controlar si estamos editando
-  const [editId, setEditId] = useState(null); // null = creando, ID = editando
-
-  // Estado del Formulario
+  // Formulario
   const initialFormState = {
     nombre: "",
     apellido: "",
@@ -47,23 +46,25 @@ export default function DashboardAdmin() {
   const cargarDatosGenerales = async () => {
     try {
       setLoading(true);
-      const [clientesResp, tecnicosResp, serviciosResp, garantiasResp] = await Promise.all([
+      
+      const [clientesResp, listaTecnicos, serviciosResp, garantiasResp] = await Promise.all([
         api.get("/clientes"),
-        api.get("/tecnicos"),
+        getTecnicos(), 
         api.get("/servicios"),
         api.get("/garantias")
       ]);
 
       setStats({
         totalClientes: clientesResp.data.length,
-        totalTecnicos: tecnicosResp.data.length,
+        totalTecnicos: listaTecnicos.length,
         totalServicios: serviciosResp.data.length,
         totalGarantias: garantiasResp.data.length
       });
 
-      setTecnicosLista(tecnicosResp.data);
+      setTecnicosLista(listaTecnicos);
+
     } catch (error) {
-      console.error("Error cargando el dashboard:", error);
+      console.error("Error cargando dashboard:", error);
     } finally {
       setLoading(false);
     }
@@ -74,16 +75,15 @@ export default function DashboardAdmin() {
     setFormData({ ...formData, [name]: value });
   };
 
-  // --- 3. NUEVO: Función para abrir modal en modo CREAR ---
+  // --- ABRIR MODAL (CREAR/EDITAR) ---
   const handleOpenCreate = () => {
-    setEditId(null); // Modo crear
-    setFormData(initialFormState); // Limpiar form
+    setEditId(null);
+    setFormData(initialFormState);
     setShowModal(true);
   };
 
-  // --- 4. NUEVO: Función para abrir modal en modo EDITAR ---
   const handleOpenEdit = (tech) => {
-    setEditId(tech.id); // Guardamos ID a editar
+    setEditId(tech.id);
     setFormData({
       nombre: tech.nombre,
       apellido: tech.apellido,
@@ -96,7 +96,7 @@ export default function DashboardAdmin() {
     setShowModal(true);
   };
 
-  // --- GUARDAR (Crear o Editar) ---
+  // --- GUARDAR ---
   const handleSave = async () => {
     if (!formData.nombre || !formData.email || !formData.especialidad) {
       alert("Por favor completa los campos obligatorios (*)");
@@ -105,42 +105,37 @@ export default function DashboardAdmin() {
 
     setSaving(true);
     try {
-      // Normalizamos la foto (null si está vacía)
       const payload = {
         ...formData,
         foto: formData.foto && formData.foto.trim() !== "" ? formData.foto : null
       };
 
       if (editId) {
-        // --- MODO EDICIÓN ---
         await updateTecnico(editId, payload);
-        alert("¡Técnico actualizado correctamente!");
+        alert("¡Técnico actualizado!");
       } else {
-        // --- MODO CREACIÓN ---
         await createTecnico(payload);
-        alert("¡Técnico creado exitosamente!");
+        alert("¡Técnico creado!");
       }
       
-      await cargarDatosGenerales(); // Recargar tabla
+      await cargarDatosGenerales(); 
       setShowModal(false);
-      
     } catch (error) {
-      console.error("Error guardando técnico:", error);
+      console.error("Error:", error);
       alert("Error al guardar. Verifica los datos.");
     } finally {
       setSaving(false);
     }
   };
 
-  // --- ELIMINAR ---
   const handleDelete = async (id) => {
     if (window.confirm("¿Seguro que deseas eliminar este técnico?")) {
       try {
         await deleteTecnico(id);
         await cargarDatosGenerales();
       } catch (error) {
-        console.error("Error eliminando:", error);
-        alert("No se pudo eliminar el técnico.");
+        console.error("Error:", error);
+        alert("No se pudo eliminar.");
       }
     }
   };
@@ -156,176 +151,156 @@ export default function DashboardAdmin() {
   return (
     <div className="container mt-5 mb-5">
       {/* HEADER */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
         <div>
-          <h1 className="h3 fw-bold">🛠️ Panel de Administrador</h1>
+          <h1 className="h3 fw-bold text-dark">🛠️ Panel de Administrador</h1>
           <p className="text-muted mb-0">Bienvenido, <strong>{username}</strong></p>
         </div>
-        {/* Usamos handleOpenCreate para limpiar el formulario antes de abrir */}
-        <Button variant="primary" size="lg" onClick={handleOpenCreate}>
-          <i className="bi bi-person-plus-fill me-2"></i>Nuevo Técnico
-        </Button>
-      </div>
-
-      {/* --- TARJETAS DE ESTADÍSTICAS --- */}
-      <div className="row mb-5">
-        <div className="col-md-3">
-          <div className="card text-white bg-primary mb-3 shadow-sm h-100">
-            <div className="card-body text-center d-flex flex-column justify-content-center">
-              <h5 className="card-title">Clientes</h5>
-              <h2 className="display-4 fw-bold">{stats.totalClientes}</h2>
+        
+        <div className="d-flex gap-2">
+           {/* Botones Vista */}
+           <div className="btn-group shadow-sm" role="group">
+              <button className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-white bg-white text-dark border'}`} onClick={() => setViewMode('grid')}><i className="bi bi-grid-fill"></i></button>
+              <button className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-white bg-white text-dark border'}`} onClick={() => setViewMode('list')}><i className="bi bi-list-ul"></i></button>
             </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card text-white bg-success mb-3 shadow-sm h-100">
-            <div className="card-body text-center d-flex flex-column justify-content-center">
-              <h5 className="card-title">Técnicos</h5>
-              <h2 className="display-4 fw-bold">{stats.totalTecnicos}</h2>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card text-white bg-warning mb-3 shadow-sm h-100">
-            <div className="card-body text-center d-flex flex-column justify-content-center">
-              <h5 className="card-title">Servicios</h5>
-              <h2 className="display-4 fw-bold">{stats.totalServicios}</h2>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card text-white bg-info mb-3 shadow-sm h-100">
-            <div className="card-body text-center d-flex flex-column justify-content-center">
-              <h5 className="card-title">Garantías</h5>
-              <h2 className="display-4 fw-bold">{stats.totalGarantias}</h2>
-            </div>
-          </div>
+            {/* Botón Crear */}
+            <Button variant="success" size="lg" className="shadow-sm" onClick={handleOpenCreate}>
+              <i className="bi bi-person-plus-fill me-2"></i>Nuevo Técnico
+            </Button>
         </div>
       </div>
 
-      {/* --- TABLA DE GESTIÓN --- */}
-      <div className="card shadow-sm border-0">
-        <div className="card-header bg-white py-3 border-bottom">
-          <h5 className="mb-0 fw-bold text-dark">👨‍🔧 Lista de Técnicos</h5>
-        </div>
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="table-light">
-              <tr>
-                <th>ID</th>
-                <th>Perfil</th>
-                <th>Especialidad</th>
-                <th>Contacto</th>
-                <th>Estado</th>
-                <th className="text-end">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tecnicosLista.length > 0 ? (
-                tecnicosLista.map((tech) => (
-                  <tr key={tech.id}>
-                    <td className="fw-bold">#{tech.id}</td>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <img 
-                          src={tech.foto || "https://via.placeholder.com/40"} 
-                          alt="Avatar" 
-                          className="rounded-circle me-3 border"
-                          style={{ width: "40px", height: "40px", objectFit: "cover" }}
-                          onError={(e) => { e.target.src = "https://via.placeholder.com/40"; }}
-                        />
+      {/* --- SECCIÓN 1: ESTADÍSTICAS CLICABLES --- */}
+      <div className="row mb-5 g-3">
+        {[
+            { title: "Clientes", count: stats.totalClientes, color: "primary", icon: "bi-people", link: "/clientes" },
+            { title: "Técnicos", count: stats.totalTecnicos, color: "success", icon: "bi-tools", link: "/tecnicos" },
+            { title: "Servicios", count: stats.totalServicios, color: "warning", icon: "bi-clipboard-check", link: "/servicios" },
+            { title: "Garantías", count: stats.totalGarantias, color: "info", icon: "bi-shield-check", link: "/garantias" }
+        ].map((stat, idx) => (
+            <div key={idx} className="col-md-3">
+                <div 
+                  className={`card text-white bg-${stat.color} shadow-sm h-100 border-0`}
+                  style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
+                  onClick={() => navigate(stat.link)}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                  title={`Ir a ${stat.title}`}
+                >
+                    <div className="card-body d-flex justify-content-between align-items-center">
                         <div>
-                          <div className="fw-bold">{tech.nombre} {tech.apellido}</div>
+                            <h6 className="card-title mb-1 text-uppercase small opacity-75">{stat.title}</h6>
+                            <h2 className="display-5 fw-bold mb-0">{stat.count}</h2>
                         </div>
-                      </div>
-                    </td>
-                    <td><span className="badge bg-info text-dark">{tech.especialidad}</span></td>
-                    <td>
-                      <div className="small fw-semibold">{tech.email}</div>
-                      <div className="small text-muted">{tech.telefono}</div>
-                    </td>
-                    <td>
-                      {tech.disponible ? (
-                        <span className="badge bg-success">Disponible</span>
-                      ) : (
-                        <span className="badge bg-secondary">Ocupado</span>
-                      )}
-                    </td>
-                    <td className="text-end">
-                      {/* BOTÓN EDITAR */}
-                      <button 
-                        className="btn btn-sm btn-outline-primary me-2"
-                        onClick={() => handleOpenEdit(tech)}
-                        title="Editar técnico"
-                      >
-                        <i className="bi bi-pencil"></i>
-                      </button>
-                      {/* BOTÓN ELIMINAR */}
-                      <button 
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => handleDelete(tech.id)}
-                        title="Eliminar técnico"
-                      >
-                        <i className="bi bi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="text-center py-5">
-                    <div className="text-muted mb-3">No hay técnicos registrados aún.</div>
-                    <Button variant="outline-primary" size="sm" onClick={handleOpenCreate}>
-                      Crear el primero
-                    </Button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                        <i className={`bi ${stat.icon} display-6 opacity-50`}></i>
+                    </div>
+                </div>
+            </div>
+        ))}
       </div>
 
-      {/* --- MODAL DE REGISTRO / EDICIÓN --- */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered backdrop="static">
-        <Modal.Header closeButton>
-          <Modal.Title>{editId ? "Editar Técnico" : "Registrar Nuevo Técnico"}</Modal.Title>
+      {/* --- SECCIÓN 2: GESTIÓN DE TÉCNICOS --- */}
+      <h4 className="mb-3 fw-bold text-secondary">Gestión de Personal</h4>
+      
+      {tecnicosLista.length === 0 ? (
+         <div className="alert alert-info text-center py-5 shadow-sm">No hay técnicos registrados.</div>
+      ) : (
+        <>
+          {/* VISTA GRID */}
+          {viewMode === 'grid' && (
+            <div className="row g-4">
+              {tecnicosLista.map((tech) => (
+                <div key={tech.id} className="col-md-6 col-lg-4 d-flex align-items-stretch">
+                  <div className="card w-100 shadow-sm border-0 h-100">
+                    <div className="bg-light text-center py-3 border-bottom">
+                       <img src={tech.foto || "https://via.placeholder.com/100"} alt="Avatar" className="rounded-circle border shadow-sm" style={{ width: "80px", height: "80px", objectFit: "cover" }} onError={(e) => { e.target.src = "https://via.placeholder.com/100"; }} />
+                    </div>
+                    <div className="card-body text-center pt-3">
+                       <h5 className="fw-bold text-dark mb-1">{tech.nombre} {tech.apellido}</h5>
+                       <span className="badge bg-info text-dark mb-2">{tech.especialidad}</span>
+                       <div className="small text-muted mb-2">{tech.email}</div>
+                       {tech.disponible ? <span className="badge bg-success-subtle text-success border border-success">Disponible</span> : <span className="badge bg-secondary-subtle text-secondary border border-secondary">Ocupado</span>}
+                    </div>
+                    <div className="card-footer bg-white border-top-0 d-flex gap-2 p-3 pt-0">
+                       <Button variant="outline-primary" size="sm" className="flex-grow-1" onClick={() => handleOpenEdit(tech)}>Editar</Button>
+                       <Button variant="outline-danger" size="sm" className="flex-grow-1" onClick={() => handleDelete(tech.id)}>Eliminar</Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* VISTA LISTA */}
+          {viewMode === 'list' && (
+            <div className="card shadow border-0 overflow-hidden">
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light text-secondary small text-uppercase">
+                    <tr>
+                      <th className="ps-4">ID</th>
+                      <th>Técnico</th>
+                      <th>Especialidad</th>
+                      <th>Contacto</th>
+                      <th>Estado</th>
+                      <th className="text-end pe-4">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white">
+                    {tecnicosLista.map((tech) => (
+                      <tr key={tech.id}>
+                        <td className="ps-4 fw-bold">#{tech.id}</td>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <img src={tech.foto || "https://via.placeholder.com/40"} alt="Avatar" className="rounded-circle me-3 border" style={{ width: "35px", height: "35px", objectFit: "cover" }} />
+                            <div className="fw-bold text-dark">{tech.nombre} {tech.apellido}</div>
+                          </div>
+                        </td>
+                        <td><span className="badge bg-light text-dark border fw-normal">{tech.especialidad}</span></td>
+                        <td className="small text-secondary">{tech.email}<br/>{tech.telefono}</td>
+                        <td>
+                           {tech.disponible ? <span className="badge bg-success-subtle text-success rounded-pill">Disponible</span> : <span className="badge bg-secondary-subtle text-secondary rounded-pill">Ocupado</span>}
+                        </td>
+                        <td className="text-end pe-4">
+                           <Button variant="primary" size="sm" className="me-2 px-3" onClick={() => handleOpenEdit(tech)}><i className="bi bi-pencil-square me-1"></i> Editar</Button>
+                           <Button variant="danger" size="sm" className="px-3" onClick={() => handleDelete(tech.id)}><i className="bi bi-trash me-1"></i> Eliminar</Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* --- MODAL --- */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered backdrop="static" size="lg">
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title className="fw-bold">{editId ? "✏️ Editar Técnico" : "🆕 Registrar Técnico"}</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="p-4">
           <Form>
             <Row className="g-3">
               <Col md={6}>
-                <Form.Label>Nombre <span className="text-danger">*</span></Form.Label>
-                <Form.Control 
-                  type="text" name="nombre" 
-                  value={formData.nombre} onChange={handleInputChange} 
-                />
+                <Form.Label className="fw-semibold">Nombre *</Form.Label>
+                <Form.Control type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} />
               </Col>
               <Col md={6}>
-                <Form.Label>Apellido</Form.Label>
-                <Form.Control 
-                  type="text" name="apellido" 
-                  value={formData.apellido} onChange={handleInputChange} 
-                />
+                <Form.Label className="fw-semibold">Apellido</Form.Label>
+                <Form.Control type="text" name="apellido" value={formData.apellido} onChange={handleInputChange} />
               </Col>
               <Col md={12}>
-                <Form.Label>Email (Usuario de acceso) <span className="text-danger">*</span></Form.Label>
-                <Form.Control 
-                  type="email" name="email" placeholder="ejemplo@reparafacil.com"
-                  value={formData.email} onChange={handleInputChange} 
-                  // Si estamos editando, podrías querer deshabilitar el email si es clave primaria lógica
-                  // disabled={!!editId} 
-                />
+                <Form.Label className="fw-semibold">Email (Login) *</Form.Label>
+                <Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="tecnico@empresa.com" />
               </Col>
               <Col md={6}>
-                <Form.Label>Teléfono</Form.Label>
-                <Form.Control 
-                  type="text" name="telefono" 
-                  value={formData.telefono} onChange={handleInputChange} 
-                />
+                <Form.Label className="fw-semibold">Teléfono</Form.Label>
+                <Form.Control type="text" name="telefono" value={formData.telefono} onChange={handleInputChange} />
               </Col>
               <Col md={6}>
-                <Form.Label>Especialidad <span className="text-danger">*</span></Form.Label>
+                <Form.Label className="fw-semibold">Especialidad *</Form.Label>
                 <Form.Select name="especialidad" value={formData.especialidad} onChange={handleInputChange}>
                   <option value="General">General</option>
                   <option value="Electricidad">Electricidad</option>
@@ -337,31 +312,21 @@ export default function DashboardAdmin() {
                 </Form.Select>
               </Col>
               <Col md={12}>
-                <Form.Label>URL de Foto (Opcional)</Form.Label>
-                <Form.Control 
-                  type="text" name="foto" placeholder="https://..."
-                  value={formData.foto} onChange={handleInputChange} 
-                />
+                <Form.Label className="fw-semibold">URL Foto</Form.Label>
+                <Form.Control type="text" name="foto" placeholder="https://..." value={formData.foto} onChange={handleInputChange} />
               </Col>
-              <Col md={12}>
-                <Form.Check 
-                  type="switch"
-                  id="disponible-switch"
-                  label="Disponible para servicios"
-                  checked={formData.disponible}
-                  onChange={(e) => setFormData({...formData, disponible: e.target.checked})}
-                />
+              <Col md={12} className="pt-2">
+                  <div className="form-check form-switch p-3 bg-light rounded border">
+                    <input className="form-check-input ms-0 me-2" type="checkbox" id="disponible-switch" checked={formData.disponible} onChange={(e) => setFormData({...formData, disponible: e.target.checked})} />
+                    <label className="form-check-label fw-bold" htmlFor="disponible-switch">Disponible para servicios</label>
+                  </div>
               </Col>
             </Row>
           </Form>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button variant="primary" onClick={handleSave} disabled={saving}>
-            {saving ? "Guardando..." : (editId ? "Actualizar" : "Crear Técnico")}
-          </Button>
+        <Modal.Footer className="bg-light">
+          <Button variant="secondary" onClick={() => setShowModal(false)} disabled={saving}>Cancelar</Button>
+          <Button variant="primary" onClick={handleSave} disabled={saving}>{saving ? "Guardando..." : "Guardar Cambios"}</Button>
         </Modal.Footer>
       </Modal>
     </div>
