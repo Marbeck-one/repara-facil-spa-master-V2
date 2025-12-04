@@ -6,19 +6,17 @@ export default function Clientes() {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // --- Estado de Vista (Grid vs List) ---
   const [viewMode, setViewMode] = useState('grid'); 
 
-  // --- Estados del Modal ---
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState(null);
 
-  // Formulario
   const initialFormState = {
     nombre: "",
     apellido: "",
     email: "",
+    password: "", // Campo nuevo
     telefono: "",
     direccion: ""
   };
@@ -36,7 +34,6 @@ export default function Clientes() {
       .finally(() => setLoading(false));
   };
 
-  // --- Manejadores ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -54,6 +51,7 @@ export default function Clientes() {
       nombre: cliente.nombre,
       apellido: cliente.apellido,
       email: cliente.email,
+      password: "", // Resetear password
       telefono: cliente.telefono,
       direccion: cliente.direccion
     });
@@ -103,7 +101,6 @@ export default function Clientes() {
     <section className="py-5 bg-light">
       <div className="container">
         
-        {/* --- HEADER: Título y Controles --- */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-5 gap-3">
           <div>
             <h2 className="fw-bold text-dark mb-0">Gestión de Clientes</h2>
@@ -111,7 +108,6 @@ export default function Clientes() {
           </div>
 
           <div className="d-flex gap-2">
-            {/* Toggle Grid/List */}
             <div className="btn-group shadow-sm" role="group">
               <button 
                 type="button" 
@@ -131,7 +127,6 @@ export default function Clientes() {
               </button>
             </div>
 
-            {/* Botón Nuevo */}
             <Button variant="success" className="shadow-sm" onClick={handleOpenCreate}>
               <i className="bi bi-person-plus-fill me-2"></i> Nuevo Cliente
             </Button>
@@ -152,7 +147,6 @@ export default function Clientes() {
                   <div key={c.id} className="col-md-6 col-lg-4 d-flex align-items-stretch">
                     <div className="card w-100 shadow-sm border-0 h-100">
                       <div className="card-body">
-                        {/* Cabecera de Tarjeta */}
                         <div className="d-flex align-items-center mb-4">
                           <div 
                             className="rounded-circle d-flex align-items-center justify-content-center me-3 text-white fw-bold shadow-sm"
@@ -166,7 +160,6 @@ export default function Clientes() {
                           </div>
                         </div>
                         
-                        {/* Datos */}
                         <div className="text-secondary small d-flex flex-column gap-2">
                           <div className="d-flex align-items-center">
                             <i className="bi bi-envelope fs-6 me-2 text-primary"></i>
@@ -183,7 +176,6 @@ export default function Clientes() {
                         </div>
                       </div>
 
-                      {/* Pie de Tarjeta (Botones) */}
                       <div className="card-footer bg-white border-top-0 p-3 pt-0">
                         <div className="d-flex gap-2">
                           <Button variant="outline-primary" size="sm" className="flex-grow-1" onClick={() => handleOpenEdit(c)}>
@@ -210,7 +202,6 @@ export default function Clientes() {
                         <th className="ps-4 py-3">Cliente</th>
                         <th>Contacto</th>
                         <th>Dirección</th>
-                        {/* Aumentamos el ancho mínimo para acomodar botones grandes */}
                         <th className="text-end pe-4" style={{ minWidth: "220px" }}>Acciones</th>
                       </tr>
                     </thead>
@@ -244,7 +235,6 @@ export default function Clientes() {
                           </td>
                           <td className="text-end pe-4">
                             <div className="d-flex justify-content-end gap-2">
-                              {/* --- BOTONES MEJORADOS --- */}
                               <Button 
                                 variant="warning" 
                                 className="text-dark fw-bold"
@@ -271,7 +261,6 @@ export default function Clientes() {
           </>
         )}
 
-        {/* --- MODAL (Crear/Editar) --- */}
         <Modal show={showModal} onHide={() => setShowModal(false)} centered backdrop="static" size="lg">
           <Modal.Header closeButton className="bg-light">
             <Modal.Title className="fw-bold">
@@ -293,6 +282,19 @@ export default function Clientes() {
                   <Form.Label className="fw-semibold">Email <span className="text-danger">*</span></Form.Label>
                   <Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="cliente@ejemplo.com" />
                 </Col>
+                
+                {/* CAMPO PASSWORD NUEVO */}
+                <Col md={12}>
+                    <Form.Label className="fw-semibold">Contraseña {editId ? "(Opcional)" : "*"}</Form.Label>
+                    <Form.Control 
+                        type="password" 
+                        name="password" 
+                        value={formData.password} 
+                        onChange={handleInputChange}
+                        placeholder={editId ? "********" : "Ingresa contraseña"} 
+                    />
+                </Col>
+
                 <Col md={6}>
                   <Form.Label className="fw-semibold">Teléfono <span className="text-danger">*</span></Form.Label>
                   <Form.Control type="text" name="telefono" value={formData.telefono} onChange={handleInputChange} />

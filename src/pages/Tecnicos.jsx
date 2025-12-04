@@ -36,6 +36,7 @@ export default function Tecnicos() {
     nombre: "",
     apellido: "",
     email: "",
+    password: "", // Campo nuevo
     telefono: "",
     especialidad: "General",
     foto: "",
@@ -80,6 +81,7 @@ export default function Tecnicos() {
       nombre: tech.nombre,
       apellido: tech.apellido,
       email: tech.email,
+      password: "", // Resetear password al editar
       telefono: tech.telefono,
       especialidad: tech.especialidad,
       foto: tech.foto || "",
@@ -277,7 +279,7 @@ export default function Tecnicos() {
               ))}
             </div>
           ) : (
-            // --- VISTA LISTA MEJORADA (BOTONES GRANDES Y CLAROS) ---
+            // --- VISTA LISTA MEJORADA ---
             <div className="card shadow border-0 overflow-hidden">
                 <div className="table-responsive">
                   <table className="table table-hover align-middle mb-0">
@@ -303,7 +305,6 @@ export default function Tecnicos() {
                           <td className="text-end">
                              {isAdmin ? (
                                 <div className="d-flex justify-content-end gap-2">
-                                    {/* BOTONES MEJORADOS: Texto visible, Colores Sólidos */}
                                     <Button variant="warning" className="text-dark fw-bold" onClick={() => handleOpenEdit(t)}>
                                         <i className="bi bi-pencil-fill me-1"></i> Editar
                                     </Button>
@@ -333,7 +334,7 @@ export default function Tecnicos() {
           )
         )}
 
-        {/* MODALES SE MANTIENEN IGUAL (Gestión y Agendar) */}
+        {/* MODAL GESTIÓN */}
         {isAdmin && (
             <Modal show={showModal} onHide={() => setShowModal(false)} centered>
                 <Modal.Header closeButton><Modal.Title>{editId ? "Editar Técnico" : "Registrar Técnico"}</Modal.Title></Modal.Header>
@@ -343,6 +344,19 @@ export default function Tecnicos() {
                             <Col md={6}><Form.Label>Nombre</Form.Label><Form.Control name="nombre" value={formData.nombre} onChange={handleInputChange}/></Col>
                             <Col md={6}><Form.Label>Apellido</Form.Label><Form.Control name="apellido" value={formData.apellido} onChange={handleInputChange}/></Col>
                             <Col md={12}><Form.Label>Email</Form.Label><Form.Control name="email" value={formData.email} onChange={handleInputChange}/></Col>
+                            
+                            {/* CAMPO PASSWORD NUEVO */}
+                            <Col md={12}>
+                                <Form.Label>Contraseña {editId ? "(Dejar en blanco para no cambiar)" : "*"}</Form.Label>
+                                <Form.Control 
+                                    type="password" 
+                                    name="password" 
+                                    placeholder={editId ? "********" : "Ingresa contraseña"} 
+                                    value={formData.password} 
+                                    onChange={handleInputChange}
+                                />
+                            </Col>
+
                             <Col md={6}><Form.Label>Teléfono</Form.Label><Form.Control name="telefono" value={formData.telefono} onChange={handleInputChange}/></Col>
                             <Col md={6}><Form.Label>Especialidad</Form.Label><Form.Select name="especialidad" value={formData.especialidad} onChange={handleInputChange}><option>General</option><option>Electricidad</option><option>Gasfitería</option><option>Electrónica</option><option>Computación</option></Form.Select></Col>
                             <Col md={12} className="mt-3"><Form.Check type="switch" label="Disponible para asignar" checked={formData.disponible} onChange={(e) => setFormData({...formData, disponible: e.target.checked})} /></Col>
