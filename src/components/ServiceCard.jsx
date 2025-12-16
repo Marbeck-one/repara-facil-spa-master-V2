@@ -1,17 +1,17 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // <--- 1. Importar useNavigate
-import { useAuth } from "../context/AuthContext"; // <--- 2. Importar Auth
+import { useNavigate } from "react-router-dom"; 
+import { useAuth } from "../context/AuthContext"; 
 import ScheduleModal from "./ScheduleModal.jsx";
 
 export default function ServiceCard({ service }) {
   const [showModal, setShowModal] = useState(false);
-  const navigate = useNavigate(); // <--- 3. Usar el hook
-  const { role } = useAuth();     // <--- 4. Obtener el rol
+  const navigate = useNavigate(); 
+  const { role } = useAuth();     
 
   if (!service) return null;
 
   const handleSuccess = () => {
-    // 5. Redirigir al dashboard correspondiente según el rol
+    // Redirigir al dashboard correspondiente según el rol
     if (role === "TECNICO" || role === "ROLE_TECNICO") {
       navigate("/dashboard/tecnico");
     } else if (role === "ADMIN" || role === "ROLE_ADMIN") {
@@ -22,7 +22,7 @@ export default function ServiceCard({ service }) {
   };
 
   return (
-    <div className="card h-100 shadow-sm service-card border-0">
+    <div className="card h-100 shadow-sm service-card border-0" data-testid="service-card">
       <div className="card-body d-flex flex-column">
         <div className="d-flex justify-content-between align-items-start mb-3">
           <div>
@@ -58,7 +58,7 @@ export default function ServiceCard({ service }) {
         show={showModal}
         onClose={() => setShowModal(false)}
         service={service}
-        onSuccess={handleSuccess} // <--- 6. Conectar la redirección
+        onSuccess={handleSuccess} 
       />
     </div>
   );

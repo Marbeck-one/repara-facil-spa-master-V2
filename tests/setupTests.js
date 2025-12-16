@@ -1,18 +1,32 @@
 // tests/setupTests.js
 
-// Limpieza entre tests (opcional pero sano)
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
-afterEach(() => cleanup());
-
-// jest-dom para Vitest (¡esta variante!)
 import "@testing-library/jest-dom/vitest";
 
-// Polyfill para crypto.randomUUID (jsdom)
+// Limpieza entre tests
+afterEach(() => cleanup());
+
+/* =========================
+   MOCK GLOBAL DE AUTH
+   ========================= */
+vi.mock("../src/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: 1, nombre: "Usuario Test" },
+    isAuthenticated: true,
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
+/* =========================
+   POLYFILL crypto.randomUUID
+   ========================= */
 if (!global.crypto) {
   // @ts-ignore
   global.crypto = {};
 }
+
 if (!global.crypto.randomUUID) {
   // @ts-ignore
   global.crypto.randomUUID = () =>
@@ -22,4 +36,3 @@ if (!global.crypto.randomUUID) {
       return v.toString(16);
     });
 }
-

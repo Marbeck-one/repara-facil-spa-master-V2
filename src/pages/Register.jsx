@@ -80,8 +80,9 @@ export default function Register() {
 
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
-                <label className="form-label">Nombre Completo</label>
+                <label htmlFor="nombre" className="form-label">Nombre Completo</label>
                 <input
+                  id="nombre"
                   name="nombre"
                   className="form-control"
                   value={form.nombre}
@@ -92,8 +93,9 @@ export default function Register() {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Correo Electrónico</label>
+                <label htmlFor="email" className="form-label">Correo Electrónico</label>
                 <input
+                  id="email"
                   type="email"
                   name="email"
                   className="form-control"
@@ -104,8 +106,9 @@ export default function Register() {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Contraseña</label>
+                <label htmlFor="password" className="form-label">Contraseña</label>
                 <input
+                  id="password"
                   type="password"
                   name="password"
                   className="form-control"
@@ -116,8 +119,9 @@ export default function Register() {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Confirmar Contraseña</label>
+                <label htmlFor="confirmar" className="form-label">Confirmar Contraseña</label>
                 <input
+                  id="confirmar"
                   type="password"
                   name="confirmar"
                   className="form-control"

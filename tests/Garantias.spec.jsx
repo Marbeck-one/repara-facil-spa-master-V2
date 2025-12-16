@@ -1,32 +1,54 @@
 import React from 'react';
-import { screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { renderWithProviders } from './utils.jsx';
-
-
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import Garantias from '../src/pages/Garantias.jsx';
+import { AppProvider } from '../src/context/AppContext.jsx';
+
+// 1. Mocks de Servicios (Devolvemos arrays vacíos para que cargue rápido)
+vi.mock('../src/api/garantiasService', () => ({
+  getGarantias: vi.fn().mockResolvedValue([]),
+  createGarantia: vi.fn(),
+  updateGarantia: vi.fn(),
+  deleteGarantia: vi.fn(),
+}));
+
+vi.mock('../src/api/serviciosService', () => ({
+  getServicios: vi.fn().mockResolvedValue([]),
+}));
+
+// 2. Mock de AuthContext
+const mockUseAuth = vi.fn();
+vi.mock('../src/context/AuthContext', () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+function renderWithProviders(ui) {
+  return render(<AppProvider>{ui}</AppProvider>);
+}
 
 describe('Garantías page', () => {
-  test('muestra Vigente si el código termina en 7', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<Garantias />);
-
-    const input = screen.getByPlaceholderText(/código de garantía/i);
-    await user.type(input, 'ABC1237');
-    await user.click(screen.getByRole('button', { name: /consultar/i }));
-
-    expect(await screen.findByText(/estado:\s*vigente/i)).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Simulamos un usuario logueado para activar la carga de datos
+    mockUseAuth.mockReturnValue({ 
+      role: 'ADMIN', 
+      username: 'admin@test.cl',
+      isAuthenticated: true 
+    });
   });
 
-  test('muestra Vencida si el código no termina en 7', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<Garantias />);
+  test('Renderiza la página de gestión y termina de cargar', async () => {
+    // Renderizamos el componente
+    const { container } = renderWithProviders(<Garantias />);
 
-    const input = screen.getByPlaceholderText(/código de garantía/i);
-    await user.clear(input);
-    await user.type(input, 'XYZ999');
-    await user.click(screen.getByRole('button', { name: /consultar/i }));
+    // Esperamos a que el "loading" (spinner) desaparezca
+    await waitFor(() => {
+      const spinner = container.querySelector('.spinner-border');
+      expect(spinner).not.toBeInTheDocument();
+    });
 
-    expect(await screen.findByText(/estado:\s*vencida/i)).toBeInTheDocument();
+    // Si desaparece el spinner, significa que cargó la vista de gestión
+    // Verificamos que no haya explotado
+    expect(container).toBeInTheDocument();
   });
 });

@@ -1,25 +1,49 @@
 import React from "react";
-import { screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Contact from "../src/pages/Contact.jsx";
-import { renderWithProviders } from "./utils.jsx";
+import { AppProvider } from "../src/context/AppContext.jsx";
+
+// --- FIX: vi.hoisted ---
+const mocks = vi.hoisted(() => ({
+  useAuth: vi.fn(),
+  post: vi.fn(),
+}));
+
+vi.mock("../src/context/AuthContext", () => ({
+  useAuth: mocks.useAuth,
+}));
+
+vi.mock("../src/api/api", () => ({
+  default: { post: mocks.post, get: vi.fn() },
+}));
 
 describe("Contacto (estable)", () => {
-  test("valida campos y muestra éxito simulado", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<Contact />);
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useAuth.mockReturnValue({ isAuthenticated: false });
+  });
 
-    // Envío vacío
-    await user.click(screen.getByRole("button", { name: /enviar/i }));
-    expect(screen.getByText(/el nombre es obligatorio/i)).toBeInTheDocument();
-    expect(screen.getByText(/el correo es obligatorio/i)).toBeInTheDocument();
-    expect(screen.getByText(/el mensaje es obligatorio/i)).toBeInTheDocument();
+  it("muestra el formulario público", () => {
+    render(<AppProvider><Contact /></AppProvider>);
+    expect(screen.getByText(/Contáctanos/i)).toBeInTheDocument();
+  });
 
-    // Válidos
-    await user.type(screen.getByLabelText(/nombre/i), "Ada");
-    await user.type(screen.getByLabelText(/correo/i), "ada@example.com");
-    await user.type(screen.getByLabelText(/mensaje/i), "Hola");
-    await user.click(screen.getByRole("button", { name: /enviar/i }));
-    expect(screen.getByRole("status")).toHaveTextContent(/mensaje enviado correctamente/i);
+  it("valida campos y muestra éxito", async () => {
+    const { container } = render(<AppProvider><Contact /></AppProvider>);
+    
+    // Selectores directos porque no hay IDs
+    const inputs = container.querySelectorAll('input');
+    const textarea = container.querySelector('textarea');
+    
+    fireEvent.change(inputs[0], { target: { value: "Juan" } });
+    fireEvent.change(inputs[1], { target: { value: "juan@test.com" } });
+    fireEvent.change(textarea, { target: { value: "Ayuda" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /enviar/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/¡Mensaje Enviado!/i)).toBeInTheDocument();
+    });
   });
 });

@@ -1,29 +1,37 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./utils.jsx";
 import Home from "../src/pages/Home.jsx";
+import { vi, describe, test, expect, beforeEach } from "vitest";
+
+// --- MOCKS: Evitar errores de red ---
+vi.mock("../src/api/tecnicosService", () => ({
+  getTecnicos: vi.fn().mockResolvedValue([
+    { id: 1, nombre: "Juan", apellido: "Perez", especialidad: "Electricidad", foto: "url" }
+  ]),
+}));
+
+vi.mock("../src/api/serviciosService", () => ({
+  getServicios: vi.fn().mockResolvedValue([
+    { id: 1, nombre: "Reparación", precio: 10000 }
+  ]),
+}));
+// ------------------------------------
 
 describe("Home page", () => {
-  const renderHome = () => renderWithProviders(<Home />);
+  test("muestra elementos principales y carga datos", async () => {
+    renderWithProviders(<Home />);
 
-  test("muestra el título de bienvenida", () => {
-    renderHome();
+    // 1. Título principal
+    expect(screen.getByRole("heading", { name: /Expertos en reparaciones/i })).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("heading", { name: /reparafácil spa/i })
-    ).toBeInTheDocument();
-  });
+    // 2. Botón de servicios
+    expect(screen.getByRole("button", { name: /ver servicios/i })).toBeInTheDocument();
 
-  test("tiene un botón para ver servicios", () => {
-    renderHome();
-
-    const boton = screen.getByRole("button", { name: /ver servicios/i });
-    expect(boton).toBeInTheDocument();
-  });
-
-  test("renderiza al menos un técnico destacado (por title)", () => {
-    renderHome();
-
-    const cards = screen.getAllByTitle(/técnico:/i);
-    expect(cards.length).toBeGreaterThan(0);
+    // 3. Esperar a que carguen los datos mockeados (Técnicos o Servicios destacados)
+    // Buscamos cualquier botón de acción que indique que las cards cargaron
+    await waitFor(() => {
+        const buttons = screen.getAllByRole("button", { name: /agendar/i });
+        expect(buttons.length).toBeGreaterThan(0);
+    });
   });
 });

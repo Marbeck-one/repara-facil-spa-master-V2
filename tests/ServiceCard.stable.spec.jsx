@@ -1,19 +1,29 @@
 import React from "react";
-import { screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { describe, test, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
 import ServiceCard from "../src/components/ServiceCard.jsx";
-import { renderWithProviders } from "./utils.jsx";
+import { AppProvider } from "../src/context/AppContext.jsx";
+
+// MOCKS PARA EVITAR ERROR DE RED
+vi.mock("../src/api/clientesService", () => ({ getClientes: vi.fn().mockResolvedValue([]) }));
+vi.mock("../src/api/tecnicosService", () => ({ getTecnicos: vi.fn().mockResolvedValue([]) }));
+vi.mock("../src/api/serviciosService", () => ({ getServicios: vi.fn().mockResolvedValue([]) }));
+
+function renderWithProviders(ui) {
+  return render(
+    <BrowserRouter>
+      <AppProvider>{ui}</AppProvider>
+    </BrowserRouter>
+  );
+}
 
 describe("ServiceCard (estable)", () => {
-  test("muestra nombre y permite 'Agregar' (contador)", async () => {
-    const user = userEvent.setup();
-    const item = { id: 1, nombre: "Reparación Lavadora", categoria: "electro", precio: 29990 };
-    renderWithProviders(<ServiceCard service={item} />);
-    expect(screen.getByTestId("service-card")).toBeInTheDocument();
-    expect(screen.getByText(/Reparación Lavadora/i)).toBeInTheDocument();
-
-    const btnAgregar = screen.getByRole("button", { name: /agregar/i });
-    await user.click(btnAgregar);
-    // No esperamos UI específica aquí; el contador se valida en el test de Navbar.
+  test("muestra nombre y permite 'Agendar Cita'", () => {
+    const fakeService = { id: 1, nombre: "Lavadora", precio: 20000 };
+    renderWithProviders(<ServiceCard service={fakeService} />);
+    
+    expect(screen.getByText("Lavadora")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Agendar Cita/i })).toBeInTheDocument();
   });
 });
