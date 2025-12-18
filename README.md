@@ -1,4 +1,4 @@
-```markdown
+
 # 🔧 ReparaFácil SPA - Frontend
 
 ![React](https://img.shields.io/badge/React-18.x-blue?style=for-the-badge&logo=react)
@@ -91,7 +91,6 @@ La aplicación estará disponible en: `http://localhost:5173`
 ## 🧪 Ejecución de Pruebas (Testing)
 
 El proyecto cuenta con una suite de pruebas unitarias para validar componentes críticos como el Login y el registro.
-
 Para ejecutar los tests:
 
 ```bash
@@ -99,7 +98,7 @@ npm test
 
 ```
 
-*Esto ejecutará `vitest run` y mostrará el reporte de cobertura en la consola.*
+Esto ejecutará `vitest run` y mostrará el reporte de cobertura en la consola.
 
 ---
 
@@ -125,7 +124,7 @@ npm run preview
 
 ## 📂 Estructura del Proyecto
 
-```text
+```plaintext
 src/
 ├── api/            # Configuración de Axios y servicios (endpoints)
 ├── components/     # Componentes reutilizables (Navbar, Cards, Modales)
@@ -139,11 +138,31 @@ src/
 
 ---
 
+## 📊 Visualización del Diagrama de Base de Datos
+
+El repositorio incluye el modelo entidad-relación en el archivo **`MER-Reparafacil.md`**. Para visualizarlo gráficamente, sigue estos pasos:
+
+1. **Instalar Extensión:** Asegúrate de tener instalada la extensión **Markdown Preview Mermaid Support** en VS Code.
+2. **Abrir Archivo:** Abre `MER-Reparafacil.md` en el editor.
+3. **Ejecutar Vista Previa:**
+* Presiona `Ctrl + Shift + V` (Windows/Linux) o `Cmd + Shift + V` (Mac).
+* O haz clic en el ícono de **Vista Previa** (lupa con hoja) en la esquina superior derecha.
+
+
+
+---
+
 ## 👤 Autores
 
 Proyecto desarrollado por el equipo de **ReparaFácil** para la asignatura de Desarrollo Fullstack II.
-En especial MARBECK-ONE (BECKER) y THRAGG969 (MASSIMO) 
+
+En especial:
+
+* **MARBECK-ONE (BECKER)**
+* **THRAGG969 (MASSIMO)**
 
 ```
+
+
 
 ```
