@@ -1,70 +1,149 @@
-# Getting Started with Create React App
+```markdown
+# 🔧 ReparaFácil SPA - Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![React](https://img.shields.io/badge/React-18.x-blue?style=for-the-badge&logo=react)
+![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=for-the-badge&logo=vite)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.x-purple?style=for-the-badge&logo=bootstrap)
+![Status](https://img.shields.io/badge/Estado-Finalizado-success?style=for-the-badge)
 
-## Available Scripts
+> **Asignatura:** DESARROLLO FULLSTACK II_001D
 
-In the project directory, you can run:
+## 📖 Descripción del Proyecto
 
-### `npm start`
+**ReparaFácil SPA** es una aplicación web moderna diseñada para la gestión integral de servicios de reparación. La plataforma conecta a clientes con técnicos especializados, permitiendo administrar agendas, garantías y seguimiento de servicios mediante un sistema de roles diferenciados.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Este repositorio contiene el **Frontend** de la aplicación, construido con React y Vite, implementando una arquitectura modular, gestión de estado global y seguridad mediante JWT.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 🚀 Características Principales
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+* **🔐 Autenticación y Seguridad:** Login y Registro con validación JWT. Protección de rutas basada en roles (`ADMIN`, `TECNICO`, `CLIENTE`).
+* **👥 Gestión de Usuarios:** CRUD completo de clientes y asignación de técnicos.
+* **🛠️ Servicios y Garantías:** Solicitud de reparaciones, seguimiento de estados y gestión de garantías.
+* **📅 Agenda:** Calendario interactivo para técnicos y administradores.
+* **💬 Chat Integrado:** Sistema de mensajería para comunicación entre cliente y soporte/técnico.
+* **🧪 Testing:** Pruebas unitarias implementadas con Vitest y React Testing Library.
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🛠️ Tecnologías Utilizadas
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+* **Core:** React 18, React DOM.
+* **Build Tool:** Vite.
+* **Estilos:** Bootstrap 5, React-Bootstrap, CSS Modules.
+* **Enrutamiento:** React Router DOM v6.
+* **Http Client:** Axios (con interceptores para Token JWT).
+* **Testing:** Vitest, JSDOM.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## ⚙️ Pre-requisitos
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Antes de iniciar, asegúrate de tener instalado:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1.  **Node.js** (v18 o superior recomendado).
+2.  **NPM** (gestor de paquetes).
+3.  El **Backend (API Spring Boot)** debe estar ejecutándose en el puerto `8082` (por defecto) para que la aplicación funcione correctamente.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 💻 Instalación y Despliegue Local
 
-## Learn More
+Sigue estos pasos para levantar el proyecto en tu máquina:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 1. Clonar el repositorio
+```bash
+git clone [https://github.com/tu-usuario/repara-facil-spa.git](https://github.com/tu-usuario/repara-facil-spa.git)
+cd repara-facil-spa
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```
 
-### Code Splitting
+### 2. Instalar dependencias
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```bash
+npm install
 
-### Analyzing the Bundle Size
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 3. Configurar Variables de Entorno
 
-### Making a Progressive Web App
+Crea un archivo `.env` en la raíz del proyecto (basado en el archivo `.env` de ejemplo si existe) y define la URL de tu API Backend:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```env
+VITE_API_URL=http://localhost:8082/api
 
-### Advanced Configuration
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### 4. Ejecutar en modo desarrollo
 
-### Deployment
+Para iniciar el servidor local con Vite:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+npm run dev
 
-### `npm run build` fails to minify
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+La aplicación estará disponible en: `http://localhost:5173`
+
+---
+
+## 🧪 Ejecución de Pruebas (Testing)
+
+El proyecto cuenta con una suite de pruebas unitarias para validar componentes críticos como el Login y el registro.
+
+Para ejecutar los tests:
+
+```bash
+npm test
+
+```
+
+*Esto ejecutará `vitest run` y mostrará el reporte de cobertura en la consola.*
+
+---
+
+## 📦 Construcción para Producción
+
+Para generar los archivos estáticos optimizados para subir a un servidor (Netlify, Vercel, AWS, etc.):
+
+```bash
+npm run build
+
+```
+
+Esto creará una carpeta `dist/` con todo el código minificado y listo para desplegar.
+
+Para previsualizar la build localmente:
+
+```bash
+npm run preview
+
+```
+
+---
+
+## 📂 Estructura del Proyecto
+
+```text
+src/
+├── api/            # Configuración de Axios y servicios (endpoints)
+├── components/     # Componentes reutilizables (Navbar, Cards, Modales)
+├── context/        # Context API (AuthContext, AppContext, CartContext)
+├── pages/          # Vistas principales (Home, Login, Dashboards)
+├── routes/         # Configuración de rutas protegidas (PrivateRoute, RoleRoute)
+├── tests/          # Pruebas unitarias (Login.spec.jsx, etc.)
+└── main.jsx        # Punto de entrada de la aplicación
+
+```
+
+---
+
+## 👤 Autores
+
+Proyecto desarrollado por el equipo de **ReparaFácil** para la asignatura de Desarrollo Fullstack II.
+En especial MARBECK-ONE (BECKER) y THRAGG969 (MASSIMO) 
+
+```
+
+```
